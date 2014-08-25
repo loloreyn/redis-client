@@ -21,15 +21,23 @@ import com.mmmthatsgoodcode.redis.Protocol;
 import com.mmmthatsgoodcode.redis.client.Transaction;
 import com.mmmthatsgoodcode.redis.client.UnrecognizedReplyException;
 import com.mmmthatsgoodcode.redis.protocol.Command;
+import com.mmmthatsgoodcode.redis.protocol.command.Auth;
+import com.mmmthatsgoodcode.redis.protocol.command.ClientPause;
+import com.mmmthatsgoodcode.redis.protocol.command.ClientSetname;
+import com.mmmthatsgoodcode.redis.protocol.command.CommandInfo;
+import com.mmmthatsgoodcode.redis.protocol.command.ConfigGet;
+import com.mmmthatsgoodcode.redis.protocol.command.Echo;
 import com.mmmthatsgoodcode.redis.protocol.command.Exec;
 import com.mmmthatsgoodcode.redis.protocol.command.Exists;
 import com.mmmthatsgoodcode.redis.protocol.command.Get;
 import com.mmmthatsgoodcode.redis.protocol.command.MSet;
 import com.mmmthatsgoodcode.redis.protocol.command.Multi;
 import com.mmmthatsgoodcode.redis.protocol.command.Ping;
+import com.mmmthatsgoodcode.redis.protocol.command.Select;
 import com.mmmthatsgoodcode.redis.protocol.command.Set;
 import com.mmmthatsgoodcode.redis.protocol.command.Setex;
 import com.mmmthatsgoodcode.redis.protocol.command.Setnx;
+import com.mmmthatsgoodcode.redis.protocol.command.Shutdown;
 import com.mmmthatsgoodcode.redis.protocol.command.Watch;
 import com.mmmthatsgoodcode.redis.protocol.model.AbstractReply;
 import com.mmmthatsgoodcode.redis.protocol.model.AbstractReply.ReplyHintBytes;
@@ -78,6 +86,34 @@ public class Redis2TextProtocol implements Protocol {
 				this.out.writeBytes(DELIMITER);
 				return this;
 			}
+			
+			/**
+             * Add argument to outgoing reply
+             * @param argument
+             * @return
+             */
+            public EncodeHelper addArg(int argument) {
+                    return addArg(String.valueOf(argument).getBytes(ENCODING));
+            }
+            
+            
+            /**
+             * Add argument to outgoing reply
+             * @param argument
+             * @return
+             */
+            public EncodeHelper addArg(long argument) {
+                    return addArg(String.valueOf(argument).getBytes(ENCODING));
+            }
+            
+            /**
+             * Add argument to outgoing reply
+             * @param argument
+             * @return
+             */
+            public EncodeHelper addArg(float argument) {
+                    return addArg(String.valueOf(argument).getBytes(ENCODING));
+            }
 			
 			public ByteBuf buffer() {
 				return this.out;
@@ -171,7 +207,74 @@ public class Redis2TextProtocol implements Protocol {
 			helper.addArg(command.getValue());
 			
 		}
-		
+
+		@Override
+		public void encode(Auth command, ByteBuf out) {
+			EncodeHelper helper = new EncodeHelper(out);
+			helper.addArgc(2);
+			helper.addArg(commandNames.get(CommandType.AUTH));
+			helper.addArg(command.getPassword().getBytes(ENCODING));
+		}
+
+		@Override
+		public void encode(ClientPause command, ByteBuf out) {
+			EncodeHelper helper = new EncodeHelper(out);
+			helper.addArgc(2);
+			helper.addArg(commandNames.get(CommandType.CLIENTPAUSE));
+			helper.addArg(command.getMilliSeconds());
+		}
+
+		@Override
+		public void encode(ClientSetname command, ByteBuf out) {
+			EncodeHelper helper = new EncodeHelper(out);
+			helper.addArgc(2);
+			helper.addArg(commandNames.get(CommandType.CLIENTSETNAME));
+			helper.addArg(command.getConnectionName().getBytes(ENCODING));
+		}
+
+		@Override
+		public void encode(CommandInfo command, ByteBuf out) {
+			EncodeHelper helper = new EncodeHelper(out);
+			helper.addArgc(1+command.getCommands().size());
+			helper.addArg(commandNames.get(CommandType.COMMANDINFO));
+			
+			for(String commandName : command.getCommands()){
+				helper.addArg(commandName.getBytes(ENCODING));
+			}
+		}
+
+		@Override
+		public void encode(ConfigGet command, ByteBuf out) {
+			EncodeHelper helper = new EncodeHelper(out);
+			helper.addArgc(2);
+			helper.addArg(commandNames.get(CommandType.CONFIGGET));
+			helper.addArg(command.getPattern().getBytes(ENCODING));
+		}
+
+		@Override
+		public void encode(Echo command, ByteBuf out) {
+			EncodeHelper helper = new EncodeHelper(out);
+			helper.addArgc(2);
+			helper.addArg(commandNames.get(CommandType.ECHO));
+			helper.addArg(command.getMessage().getBytes(ENCODING));
+		}
+
+		@Override
+		public void encode(Select command, ByteBuf out) {
+			EncodeHelper helper = new EncodeHelper(out);
+			helper.addArgc(2);
+			helper.addArg(commandNames.get(CommandType.SELECT));
+			helper.addArg(command.getIndex());
+		}
+
+		@Override
+		public void encode(Shutdown command, ByteBuf out) {
+			EncodeHelper helper = new EncodeHelper(out);
+			helper.addArgc(2);
+			helper.addArg(commandNames.get(CommandType.SHUTDOWN));
+			helper.addArg(command.getSave()?"SAVE".getBytes(ENCODING):"NOSAVE".getBytes(ENCODING));
+		}
+
 		public void encode(Command command, ByteBuf out) throws OperationNotSupportedException {
 			if (command instanceof Get) encode((Get) command, out);
 			else if (command instanceof Set) encode((Set) command, out);
@@ -182,6 +285,14 @@ public class Redis2TextProtocol implements Protocol {
 			else if (command instanceof Ping) encode((Ping) command, out);
 			else if (command instanceof Multi) encode((Multi) command, out);
 			else if (command instanceof MSet) encode((MSet) command, out);
+			else if (command instanceof Auth) encode((Auth) command, out);
+			else if (command instanceof ClientPause) encode((ClientPause) command, out);
+			else if (command instanceof ClientSetname) encode((ClientSetname) command, out);
+			else if (command instanceof CommandInfo) encode((CommandInfo) command, out);
+			else if (command instanceof ConfigGet) encode((ConfigGet) command, out);
+			else if (command instanceof Echo) encode((Echo) command, out);
+			else if (command instanceof Select) encode((Select) command, out);
+			else if (command instanceof Shutdown) encode((Shutdown) command, out);
 			else throw new OperationNotSupportedException();
 
 		}		
@@ -464,6 +575,14 @@ public class Redis2TextProtocol implements Protocol {
 			.put(CommandType.SETEX, "SETEX".getBytes(ENCODING))
 			.put(CommandType.SETNX, "SETNX".getBytes(ENCODING))
 			.put(CommandType.WATCH, "WATCH".getBytes(ENCODING))
+			.put(CommandType.AUTH, "AUTH".getBytes(ENCODING))
+			.put(CommandType.CLIENTPAUSE, "CLIENT PAUSE".getBytes(ENCODING))
+			.put(CommandType.CLIENTSETNAME, "CLIENT SETNAME".getBytes(ENCODING))
+			.put(CommandType.COMMANDINFO, "COMMAND INFO".getBytes(ENCODING))
+			.put(CommandType.CONFIGGET, "CONFIG GET".getBytes(ENCODING))
+			.put(CommandType.ECHO, "ECHO".getBytes(ENCODING))
+			.put(CommandType.SELECT, "SELECT".getBytes(ENCODING))
+			.put(CommandType.SHUTDOWN, "SHUTDOWN".getBytes(ENCODING))
 			.build();
 
 	

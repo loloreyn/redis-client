@@ -1,27 +1,20 @@
 package com.mmmthatsgoodcode.redis;
 
-import java.nio.charset.Charset;
-
 import javax.naming.OperationNotSupportedException;
 
-import com.google.common.collect.ImmutableBiMap;
-import com.google.common.collect.ImmutableMap;
 import com.mmmthatsgoodcode.redis.client.Transaction;
 import com.mmmthatsgoodcode.redis.client.UnrecognizedReplyException;
 import com.mmmthatsgoodcode.redis.protocol.Command;
 import com.mmmthatsgoodcode.redis.protocol.Reply;
 import com.mmmthatsgoodcode.redis.protocol.command.*;
-import com.mmmthatsgoodcode.redis.protocol.reply.*;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
-import io.netty.buffer.ByteBufProcessor;
-import io.netty.buffer.PooledByteBufAllocator;
 
 public interface Protocol {
 	
 	public enum ReplyType { BULK, ERROR, INTEGER, MULTI_BULK, STATUS, UNKNOWN }
-	public enum CommandType { GET, SET, SETEX, EXEC, EXISTS, MSET, MULTI, PING, SETNX, WATCH }
+	public enum CommandType { GET, SET, SETEX, EXEC, EXISTS, MSET, MULTI, PING, SETNX, WATCH, AUTH, CLIENTPAUSE, CLIENTSETNAME, COMMANDINFO, CONFIGGET, ECHO, SELECT, SHUTDOWN }
 	
 	public ByteBufAllocator getByteBufAllocator();
 	
@@ -36,7 +29,15 @@ public interface Protocol {
 		public void encode(Set command, ByteBuf out);
 		public void encode(Setex command, ByteBuf out);
 		public void encode(Setnx command, ByteBuf out);
-		public void encode(Watch command, ByteBuf out);	
+		public void encode(Watch command, ByteBuf out);
+		public void encode(Auth command, ByteBuf out);
+		public void encode(ClientPause command, ByteBuf out);
+		public void encode(ClientSetname command, ByteBuf out);
+		public void encode(CommandInfo command, ByteBuf out);
+		public void encode(ConfigGet command, ByteBuf out);
+		public void encode(Echo command, ByteBuf out);
+		public void encode(Select command, ByteBuf out);
+		public void encode(Shutdown command, ByteBuf out);
 		public void encode(Command command, ByteBuf out) throws OperationNotSupportedException;		
 		public void encode(Transaction command, ByteBuf out) throws OperationNotSupportedException;
 		

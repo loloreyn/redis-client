@@ -495,11 +495,6 @@ public class Redis2TextProtocolTest {
 		byte[] encoded = new byte[out.readableBytes()];
 		out.readBytes(encoded);
 		
-		System.out.println("Encoded :");
-		System.out.write(encoded);
-		System.out.println("\n commandBytes :");
-		System.out.write(commandBytes.toByteArray());
-		
 		assertTrue(Arrays.equals(encoded, commandBytes.toByteArray()));
 	}
 	
